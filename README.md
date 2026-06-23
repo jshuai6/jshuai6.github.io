@@ -12,7 +12,7 @@ Then open `http://localhost:8000`.
 
 ## Publishing
 
-Select **Studio** in the top-right corner to publish, edit, or delete articles locally. Articles can include one optional cover image, and you can paste images into the article text or use **Insert image** to place images inside the body. Inline images appear in the editor as short markers like `[[image:img-...]]`. Images up to 12 MB are automatically resized and compressed before saving. Content is saved in the browser's `localStorage`, so it persists on that browser without a database.
+Open the site with `?studio=1` to reveal Studio, then use it to publish, edit, or delete articles locally. Articles can include one optional cover image, and you can paste images into the article text or use **Insert image** to place images inside the body. Inline images appear in the editor as short markers like `[[image:img-...]]`. Images up to 12 MB are automatically resized and compressed before saving. Content is saved in the browser's `localStorage`, so it persists on that browser without a database.
 
 For GitHub Pages, commit changes to `index.html`, `styles.css`, `app.js`, and `.nojekyll`, then publish the repository from **Settings → Pages**. Because GitHub Pages is static hosting, content saved only through Studio will not automatically update the public repository.
 

@@ -45,6 +45,7 @@ let articles = storage.get("field-notes-articles", seedArticles);
 let activeTag = "All";
 let searchTerm = "";
 let inlineImagesDraft = {};
+const studioEnabled = new URLSearchParams(location.search).get("studio") === "1";
 
 const $ = (selector, scope = document) => scope.querySelector(selector);
 const $$ = (selector, scope = document) => [...scope.querySelectorAll(selector)];
@@ -157,6 +158,18 @@ function renderArticleBody(body, inlineImages = {}) {
     }
     return piece.value.split(/\n\s*\n/).map(paragraph => paragraph.trim()).filter(Boolean).map(paragraph => `<p>${escapeHTML(paragraph)}</p>`).join("");
   }).join("");
+}
+
+function openStudio() {
+  if (!studioEnabled) return;
+  renderManagement();
+  $("#studio-dialog").showModal();
+}
+
+function setupStudioAccess() {
+  if (!studioEnabled) return;
+  $$("[data-action='open-studio']").forEach(button => button.hidden = false);
+  if (location.hash === "#studio") openStudio();
 }
 
 function resetArticleForm() {
@@ -279,7 +292,7 @@ document.addEventListener("click", event => {
   if (tag) { activeTag = tag.dataset.tag; renderArticles(); }
   const card = event.target.closest("[data-article-id]");
   if (card) location.hash = `#article/${card.dataset.articleId}`;
-  if (event.target.closest('[data-action="open-studio"]')) { renderManagement(); $("#studio-dialog").showModal(); }
+  if (event.target.closest('[data-action="open-studio"]')) openStudio();
   if (event.target.closest('[data-action="close-studio"]')) $("#studio-dialog").close();
   if (event.target.closest('[data-action="clear-filters"]')) { activeTag = "All"; searchTerm = ""; $("#article-search").value = ""; renderArticles(); }
   const tab = event.target.closest("[data-studio-tab]");
@@ -381,4 +394,4 @@ $("#article-form").addEventListener("submit", async event => {
 });
 
 window.addEventListener("hashchange", route);
-renderArticles(); renderManagement(); route();
+renderArticles(); renderManagement(); setupStudioAccess(); route();

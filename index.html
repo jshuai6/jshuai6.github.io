@@ -15,8 +15,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=20260623-image-limit" />
-    <script src="app.js?v=20260623-image-limit" defer></script>
+    <link rel="stylesheet" href="styles.css?v=20260623-studio-gate" />
+    <script src="app.js?v=20260623-studio-gate" defer></script>
   </head>
   <body>
     <div class="grain" aria-hidden="true"></div>
@@ -25,9 +25,9 @@
       <nav class="main-nav" aria-label="Main navigation">
         <a href="#blog" data-route="blog">Home</a>
         <a href="#about" data-route="about">About</a>
-        <button class="mobile-studio" type="button" data-action="open-studio"><span class="status-dot"></span> Studio</button>
+        <button class="mobile-studio studio-entry" type="button" data-action="open-studio" hidden><span class="status-dot"></span> Studio</button>
       </nav>
-      <button class="text-button studio-trigger" type="button" data-action="open-studio">
+      <button class="text-button studio-trigger studio-entry" type="button" data-action="open-studio" hidden>
         <span class="status-dot"></span> Studio
       </button>
       <button class="menu-button" aria-label="Toggle menu" aria-expanded="false" type="button">Menu</button>
