@@ -88,7 +88,7 @@ const compressedImage = file => new Promise((resolve, reject) => {
 const readImage = file => new Promise((resolve, reject) => {
   if (!file || !file.size) return resolve("");
   if (!file.type.startsWith("image/")) return reject(new Error("Please choose an image file"));
-  if (file.size > 5000000) return reject(new Error("Please choose an image under 5 MB"));
+  if (file.size > 12000000) return reject(new Error("Please choose an image under 12 MB"));
   compressedImage(file).then(resolve).catch(reject);
 });
 const imageMarker = id => `\n\n[[image:${id}]]\n\n`;
