@@ -1,47 +1,36 @@
-const seedArticles = [
-  {
-    id: "attention-is-a-practice",
-    title: "Attention is a practice",
-    tags: ["Notes", "Creative Life"],
-    summary: "On noticing what we usually pass by, and why the quality of our attention quietly shapes the quality of our work.",
-    body: "The world does not suffer from a shortage of interesting things. It suffers from our habit of moving past them too quickly. Attention is less like a spotlight and more like a muscle: neglected, it weakens; used deliberately, it becomes generous.\n\nI started writing one small note each morning—not for an audience, and rarely about anything traditionally important. A decision I kept postponing. A sentence from a book. The geometry of a problem I was trying to solve. The ritual changed almost nothing about my schedule, but it changed the texture of my days.\n\nCreative work begins here, before the making. It begins in the decision to stay with something a few seconds longer than comfort requires. To look again. To let the ordinary become specific.\n\nThe best ideas I know did not arrive dramatically. They emerged from patient looking: a small contradiction, an overlooked need, the peculiar way a stranger folded a newspaper. Attention is how the world tells us what to make next.",
-    date: "June 14, 2026",
-    readTime: "4 min read"
-  },
-  {
-    id: "the-useful-mess",
-    title: "In praise of the useful mess",
-    tags: ["Process", "Design"],
-    summary: "A tidy desk is lovely. A living process is usually not. Some thoughts on drafts, friction, and keeping the evidence of thinking visible.",
-    body: "My favorite stage of any project is the one nobody wants to present. The table is covered in crooked printouts. Half the sentences contradict the other half. There are arrows going nowhere. The work looks uncertain because it is alive.\n\nWe often confuse clarity of presentation with clarity of thought. But thought needs somewhere to be clumsy. It needs permission to make a bad version, then a stranger version, before discovering the true one hiding underneath.\n\nThe useful mess is not chaos for its own sake. It is an external memory. Every scrap records a decision we might otherwise repeat, and every failed arrangement narrows the field. Clean it up too soon and the work can become polished but thin.\n\nI still reset the room when a project ends. But while it is becoming, I leave the evidence out. The mess reminds me that uncertainty is not a failure of the process. It is the process doing its work.",
-    date: "May 27, 2026",
-    readTime: "5 min read"
-  },
-  {
-    id: "walking-without-arriving",
-    title: "Walking without arriving",
-    tags: ["Places", "Reflection"],
-    summary: "Field notes from an afternoon with no destination, no agenda, and more time than plans.",
-    body: "I left the house with no destination, which is a small rebellion in a city that constantly asks where you are going. The fog had thinned but not lifted. Everything at a distance looked politely erased.\n\nWithout a route, the neighborhood rearranged itself. A street I knew became a sequence of colors: oxidized green, construction orange, the improbable blue of a laundromat chair. I followed curiosity instead of signs.\n\nA walk can become too efficient if I let it. Choose the route, reach the place, move on. That afternoon I tried a different rule: pause whenever something asked for a second look. Sometimes the better thought arrived next; often nothing did. Both felt useful.\n\nI returned three hours later with no obvious result. More importantly, I returned with the pleasant sense that the familiar world had been quietly replaced while I wasn’t looking.",
-    date: "April 09, 2026",
-    readTime: "3 min read"
-  }
-];
+const articlesKey = "field-notes-articles";
+const backupKey = "field-notes-articles-backup";
 
 const storage = {
-  get(key, fallback) { try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch { return fallback; } },
+  get(key, fallback) {
+    try {
+      const saved = JSON.parse(localStorage.getItem(key));
+      if (Array.isArray(saved)) return saved;
+      const backup = JSON.parse(localStorage.getItem(backupKey));
+      return Array.isArray(backup) ? backup : fallback;
+    } catch {
+      try {
+        const backup = JSON.parse(localStorage.getItem(backupKey));
+        return Array.isArray(backup) ? backup : fallback;
+      } catch {
+        return fallback;
+      }
+    }
+  },
   set(key, value) {
     try {
       localStorage.setItem(key, JSON.stringify(value));
+      localStorage.setItem(backupKey, JSON.stringify(value));
       return true;
     } catch {
-      showToast("Storage is full—use fewer or smaller images");
+      showToast("Storage is full. Download a backup, then use fewer or smaller images.");
       return false;
     }
   }
 };
 
-let articles = storage.get("field-notes-articles", seedArticles);
+let articles = storage.get(articlesKey, []);
+if (articles.length) storage.set(articlesKey, articles);
 let activeTag = "All";
 let searchTerm = "";
 let inlineImagesDraft = {};
@@ -287,6 +276,65 @@ function showStudioNotice(message) {
   notice.classList.add("show");
 }
 
+function backupFilename() {
+  const stamp = new Date().toISOString().slice(0, 10);
+  return `kevin-blog-backup-${stamp}.json`;
+}
+
+function downloadArticleBackup() {
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    articles
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = backupFilename();
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(link.href);
+  showStudioNotice("Backup downloaded. Keep that file somewhere safe.");
+}
+
+function normalizeImportedArticles(payload) {
+  const imported = Array.isArray(payload) ? payload : payload?.articles;
+  if (!Array.isArray(imported)) return [];
+  return imported.filter(article =>
+    article && typeof article.id === "string" && typeof article.title === "string" && typeof article.body === "string"
+  ).map(article => ({
+    id: article.id,
+    title: article.title,
+    tags: Array.isArray(article.tags) ? article.tags : [],
+    summary: article.summary || "",
+    body: article.body,
+    image: article.image || "",
+    inlineImages: article.inlineImages || {},
+    date: article.date || "",
+    readTime: article.readTime || ""
+  }));
+}
+
+function importArticleBackup(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const imported = normalizeImportedArticles(JSON.parse(reader.result));
+      if (!imported.length) throw new Error("No articles found in that backup file.");
+      if (!storage.set(articlesKey, imported)) return;
+      articles = imported;
+      resetArticleForm();
+      renderArticles();
+      renderManagement();
+      showStudioNotice(`Imported ${imported.length} article${imported.length === 1 ? "" : "s"}.`);
+    } catch (error) {
+      showStudioNotice(error.message || "That backup file could not be imported.");
+    }
+  };
+  reader.readAsText(file);
+}
+
 document.addEventListener("click", event => {
   const tag = event.target.closest("[data-tag]");
   if (tag) { activeTag = tag.dataset.tag; renderArticles(); }
@@ -304,7 +352,7 @@ document.addEventListener("click", event => {
   if (deleteArticle) {
     const nextArticles = articles.filter(article => article.id !== deleteArticle.dataset.deleteArticle);
     if ($("#article-form").dataset.editingId === deleteArticle.dataset.deleteArticle) resetArticleForm();
-    if (!storage.set("field-notes-articles", nextArticles)) return;
+    if (!storage.set(articlesKey, nextArticles)) return;
     articles = nextArticles; renderArticles(); renderManagement(); showToast("Article deleted");
   }
   const editArticle = event.target.closest("[data-edit-article]");
@@ -361,6 +409,12 @@ $("#article-body").addEventListener("paste", async event => {
 $("#article-body").addEventListener("input", updateInlineImageStatus);
 
 $("#cancel-edit").addEventListener("click", resetArticleForm);
+$("#download-backup").addEventListener("click", downloadArticleBackup);
+$("#import-backup").addEventListener("click", () => $("#backup-input").click());
+$("#backup-input").addEventListener("change", event => {
+  importArticleBackup(event.currentTarget.files[0]);
+  event.currentTarget.value = "";
+});
 
 $("#article-form").addEventListener("submit", async event => {
   event.preventDefault();
@@ -384,12 +438,12 @@ $("#article-form").addEventListener("submit", async event => {
     readTime: data.get("readTime").trim() || `${Math.max(1, Math.ceil(data.get("body").trim().split(/\s+/).length / 220))} min read`
   };
   const nextArticles = existingArticle ? articles.map(item => item.id === editingId ? article : item) : [article, ...articles];
-  if (!storage.set("field-notes-articles", nextArticles)) return;
+  if (!storage.set(articlesKey, nextArticles)) return;
   articles = nextArticles;
   resetArticleForm();
   renderArticles();
   renderManagement();
-  showToast(existingArticle ? "Article updated" : "Article published");
+  showStudioNotice(`${existingArticle ? "Article updated" : "Article published"}. Download a backup to keep a permanent copy.`);
   if (location.hash === `#article/${article.id}`) showArticle(article.id);
 });
 

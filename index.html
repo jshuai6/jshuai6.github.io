@@ -15,8 +15,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=20260623-contact-icons" />
-    <script src="app.js?v=20260623-studio-gate" defer></script>
+    <link rel="stylesheet" href="styles.css?v=20260623-backups" />
+    <script src="app.js?v=20260623-backups" defer></script>
   </head>
   <body>
     <div class="grain" aria-hidden="true"></div>
@@ -113,6 +113,17 @@
             <button class="button secondary" id="cancel-edit" type="button" hidden>Cancel edit</button>
           </div>
         </form>
+        <div class="backup-tools">
+          <div>
+            <strong>Article backup</strong>
+            <p>Download a copy after publishing so your posts can be restored if browser storage is cleared.</p>
+          </div>
+          <div class="backup-actions">
+            <button class="button secondary" id="download-backup" type="button">Download backup</button>
+            <button class="button secondary" id="import-backup" type="button">Import backup</button>
+            <input class="sr-only" id="backup-input" type="file" accept="application/json,.json" />
+          </div>
+        </div>
         <div class="manage-list" id="manage-articles"></div>
       </section>
     </dialog>
