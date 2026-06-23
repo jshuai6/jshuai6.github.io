@@ -49,19 +49,35 @@ let inlineImagesDraft = {};
 const $ = (selector, scope = document) => scope.querySelector(selector);
 const $$ = (selector, scope = document) => [...scope.querySelectorAll(selector)];
 const escapeHTML = (value = "") => String(value).replace(/[&<>'"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
+const imageStorageTarget = 650000;
 const compressedImage = file => new Promise((resolve, reject) => {
   const image = new Image();
   const url = URL.createObjectURL(file);
   image.onload = () => {
-    const maxWidth = 1200;
-    const scale = Math.min(1, maxWidth / image.width);
     const canvas = document.createElement("canvas");
-    canvas.width = Math.max(1, Math.round(image.width * scale));
-    canvas.height = Math.max(1, Math.round(image.height * scale));
-    canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
+    const context = canvas.getContext("2d");
+    let maxWidth = 1200;
+    let quality = 0.82;
+    let output = "";
+
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      const scale = Math.min(1, maxWidth / image.width);
+      canvas.width = Math.max(1, Math.round(image.width * scale));
+      canvas.height = Math.max(1, Math.round(image.height * scale));
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      output = canvas.toDataURL("image/jpeg", quality);
+      if (output.length <= imageStorageTarget) break;
+      if (quality > 0.58) quality -= 0.12;
+      else maxWidth = Math.max(640, Math.round(maxWidth * 0.78));
+    }
+
     URL.revokeObjectURL(url);
-    const output = canvas.toDataURL("image/jpeg", 0.82);
-    resolve(output.length > 1200000 ? canvas.toDataURL("image/jpeg", 0.68) : output);
+    if (output.length > 1200000) {
+      reject(new Error("Image is still too large after compression—try a smaller image"));
+      return;
+    }
+    resolve(output);
   };
   image.onerror = () => {
     URL.revokeObjectURL(url);
@@ -300,7 +316,7 @@ $("#inline-image-input").addEventListener("change", async event => {
     return;
   }
   try {
-    showStudioNotice("Preparing image...");
+    showStudioNotice("Compressing image...");
     const image = await readImage(file);
     insertInlineImage(image, file?.name?.replace(/\.[^.]+$/, "") || "Article image");
     showStudioNotice("Image inserted. Look for the [[image:...]] marker in the article text.");
@@ -320,7 +336,7 @@ $("#article-body").addEventListener("paste", async event => {
   if (!file && !pastedImage) return;
   event.preventDefault();
   try {
-    showStudioNotice("Preparing pasted image...");
+    showStudioNotice("Compressing pasted image...");
     const image = file ? await readImage(file) : pastedImage;
     insertInlineImage(image);
     showStudioNotice("Pasted image inserted. Look for the [[image:...]] marker in the article text.");
