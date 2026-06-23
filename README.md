@@ -12,7 +12,7 @@ Then open `http://localhost:8000`.
 
 ## Publishing
 
-Select **Studio** in the top-right corner to publish or delete articles locally. Content is saved in the browser's `localStorage`, so it persists on that browser without a database.
+Select **Studio** in the top-right corner to publish or delete articles locally. Articles can include one optional image, up to 1.5 MB. Content is saved in the browser's `localStorage`, so it persists on that browser without a database.
 
 For GitHub Pages, commit changes to `index.html`, `styles.css`, `app.js`, and `.nojekyll`, then publish the repository from **Settings → Pages**. Because GitHub Pages is static hosting, content saved only through Studio will not automatically update the public repository.
 

@@ -40,6 +40,15 @@ let searchTerm = "";
 const $ = (selector, scope = document) => scope.querySelector(selector);
 const $$ = (selector, scope = document) => [...scope.querySelectorAll(selector)];
 const escapeHTML = (value = "") => String(value).replace(/[&<>'"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
+const readImage = file => new Promise((resolve, reject) => {
+  if (!file || !file.size) return resolve("");
+  if (!file.type.startsWith("image/")) return reject(new Error("Please choose an image file"));
+  if (file.size > 1500000) return reject(new Error("Please choose an image under 1.5 MB"));
+  const reader = new FileReader();
+  reader.onload = () => resolve(reader.result);
+  reader.onerror = () => reject(new Error("The image could not be read"));
+  reader.readAsDataURL(file);
+});
 
 function renderTags() {
   const tags = ["All", ...new Set(articles.flatMap(article => article.tags))];
@@ -56,6 +65,7 @@ function renderArticles() {
   });
   $("#article-grid").innerHTML = filtered.map((article, index) => `
     <article class="article-card" tabindex="0" data-article-id="${escapeHTML(article.id)}">
+      ${article.image ? `<img class="article-card-image" src="${escapeHTML(article.image)}" alt="${escapeHTML(article.title)}" loading="lazy" />` : ""}
       <div class="article-number"><span>0${index + 1}</span><span>${escapeHTML(article.readTime)}</span></div>
       <h2>${escapeHTML(article.title)}</h2>
       <p>${escapeHTML(article.summary)}</p>
@@ -78,6 +88,7 @@ function showArticle(id) {
     <p class="eyebrow">${article.tags.map(tag => `#${escapeHTML(tag)}`).join(" &nbsp; ")}</p>
     <h1>${escapeHTML(article.title)}</h1>
     <div class="reading-meta"><span>${escapeHTML(article.date)}</span><span>${escapeHTML(article.readTime)}</span></div>
+    ${article.image ? `<img class="article-hero-image" src="${escapeHTML(article.image)}" alt="${escapeHTML(article.title)}" />` : ""}
     <div class="article-body">${article.body.split(/\n\s*\n/).map(p => `<p>${escapeHTML(p)}</p>`).join("")}</div>`;
   showView("article");
   document.title = article.title;
@@ -141,13 +152,20 @@ $(".menu-button").addEventListener("click", event => {
   const open = $(".main-nav").classList.toggle("open"); event.currentTarget.setAttribute("aria-expanded", String(open));
 });
 
-$("#article-form").addEventListener("submit", event => {
+$("#article-form").addEventListener("submit", async event => {
   event.preventDefault();
   const data = new FormData(event.currentTarget);
+  let image = "";
+  try {
+    image = await readImage(data.get("image"));
+  } catch (error) {
+    showToast(error.message);
+    return;
+  }
   const article = {
     id: slugify(data.get("title")), title: data.get("title").trim(),
     tags: data.get("tags").split(",").map(tag => tag.trim()).filter(Boolean),
-    summary: data.get("summary").trim(), body: data.get("body").trim(),
+    summary: data.get("summary").trim(), body: data.get("body").trim(), image,
     date: new Intl.DateTimeFormat("en-US", { month: "long", day: "2-digit", year: "numeric" }).format(new Date()),
     readTime: data.get("readTime").trim() || `${Math.max(1, Math.ceil(data.get("body").trim().split(/\s+/).length / 220))} min read`
   };
