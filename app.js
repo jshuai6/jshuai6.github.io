@@ -44,6 +44,7 @@ const storage = {
 let articles = storage.get("field-notes-articles", seedArticles);
 let activeTag = "All";
 let searchTerm = "";
+let inlineImagesDraft = {};
 
 const $ = (selector, scope = document) => scope.querySelector(selector);
 const $$ = (selector, scope = document) => [...scope.querySelectorAll(selector)];
@@ -74,7 +75,11 @@ const readImage = file => new Promise((resolve, reject) => {
   if (file.size > 5000000) return reject(new Error("Please choose an image under 5 MB"));
   compressedImage(file).then(resolve).catch(reject);
 });
-const imageMarkdown = (src, alt = "Article image") => `\n\n![${alt}](${src})\n\n`;
+const imageMarker = id => `\n\n[[image:${id}]]\n\n`;
+
+function imageId() {
+  return `img-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+}
 
 function insertTextAtCursor(textarea, text) {
   const start = textarea.selectionStart ?? textarea.value.length;
@@ -83,24 +88,56 @@ function insertTextAtCursor(textarea, text) {
   const cursor = start + text.length;
   textarea.focus();
   textarea.setSelectionRange(cursor, cursor);
+  textarea.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
-function renderArticleBody(body) {
-  const imagePattern = /!\[([^\]]*)\]\((data:image\/[^)\s]+|https?:\/\/[^)\s]+)\)|(data:image\/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/=]+)|<img[^>]+src=["']([^"']+)["'][^>]*>/g;
+function inlineImageCount(body = $("#article-body")?.value || "") {
+  return (body.match(/\[\[image:[^\]]+\]\]/g) || []).length;
+}
+
+function updateInlineImageStatus() {
+  const status = $("#inline-image-status");
+  if (!status) return;
+  const count = inlineImageCount();
+  status.textContent = count ? `${count} inline image${count === 1 ? "" : "s"} inserted.` : "No inline images inserted yet.";
+}
+
+function pruneInlineImages(body, images) {
+  const used = new Set([...body.matchAll(/\[\[image:([^\]]+)\]\]/g)].map(match => match[1]));
+  return Object.fromEntries(Object.entries(images).filter(([id]) => used.has(id)));
+}
+
+function insertInlineImage(src, alt = "Article image") {
+  const id = imageId();
+  inlineImagesDraft[id] = { src, alt };
+  insertTextAtCursor($("#article-body"), imageMarker(id));
+  updateInlineImageStatus();
+}
+
+function imageFigure(src, alt = "Article image") {
+  const safeImage = src?.startsWith("data:image/") || src?.startsWith("https://") || src?.startsWith("http://");
+  return safeImage ? `<figure class="inline-article-image"><img src="${escapeHTML(src)}" alt="${escapeHTML(alt || "Article image")}" /></figure>` : "";
+}
+
+function renderArticleBody(body, inlineImages = {}) {
+  const imagePattern = /\[\[image:([^\]]+)\]\]|!\[([^\]]*)\]\((data:image\/[^)\s]+|https?:\/\/[^)\s]+)\)|(data:image\/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/=]+)|<img[^>]+src=["']([^"']+)["'][^>]*>/g;
   const pieces = [];
   let cursor = 0;
   let match;
   while ((match = imagePattern.exec(body)) !== null) {
     if (match.index > cursor) pieces.push({ type: "text", value: body.slice(cursor, match.index) });
-    pieces.push({ type: "image", alt: match[1] || "Article image", src: match[2] || match[3] || match[4] });
+    if (match[1]) {
+      pieces.push({ type: "image", alt: inlineImages[match[1]]?.alt || "Article image", src: inlineImages[match[1]]?.src });
+    } else {
+      pieces.push({ type: "image", alt: match[2] || "Article image", src: match[3] || match[4] || match[5] });
+    }
     cursor = match.index + match[0].length;
   }
   if (cursor < body.length) pieces.push({ type: "text", value: body.slice(cursor) });
 
   return pieces.map(piece => {
     if (piece.type === "image") {
-      const safeImage = piece.src.startsWith("data:image/") || piece.src.startsWith("https://") || piece.src.startsWith("http://");
-      return safeImage ? `<figure class="inline-article-image"><img src="${escapeHTML(piece.src)}" alt="${escapeHTML(piece.alt || "Article image")}" /></figure>` : "";
+      return imageFigure(piece.src, piece.alt);
     }
     return piece.value.split(/\n\s*\n/).map(paragraph => paragraph.trim()).filter(Boolean).map(paragraph => `<p>${escapeHTML(paragraph)}</p>`).join("");
   }).join("");
@@ -109,9 +146,11 @@ function renderArticleBody(body) {
 function resetArticleForm() {
   const form = $("#article-form");
   form.reset();
+  inlineImagesDraft = {};
   delete form.dataset.editingId;
   $("#article-submit").textContent = "Publish article ↗";
   $("#cancel-edit").hidden = true;
+  updateInlineImageStatus();
 }
 
 function startEditingArticle(id) {
@@ -125,8 +164,10 @@ function startEditingArticle(id) {
   form.elements.summary.value = article.summary;
   form.elements.body.value = article.body;
   form.elements.image.value = "";
+  inlineImagesDraft = { ...(article.inlineImages || {}) };
   $("#article-submit").textContent = "Save article ↗";
   $("#cancel-edit").hidden = false;
+  updateInlineImageStatus();
   form.scrollIntoView({ behavior: "smooth", block: "start" });
   form.elements.title.focus();
 }
@@ -176,7 +217,7 @@ function showArticle(id) {
     <h1>${escapeHTML(article.title)}</h1>
     <div class="reading-meta"><span>${escapeHTML(article.date)}</span><span>${escapeHTML(article.readTime)}</span></div>
     ${article.image ? `<img class="article-hero-image" src="${escapeHTML(article.image)}" alt="${escapeHTML(article.title)}" />` : ""}
-    <div class="article-body">${renderArticleBody(article.body)}</div>`;
+    <div class="article-body">${renderArticleBody(article.body, article.inlineImages || {})}</div>`;
   showView("article");
   document.title = article.title;
 }
@@ -247,7 +288,7 @@ $("#inline-image-input").addEventListener("change", async event => {
   const file = event.currentTarget.files[0];
   try {
     const image = await readImage(file);
-    insertTextAtCursor($("#article-body"), imageMarkdown(image, file?.name?.replace(/\.[^.]+$/, "") || "Article image"));
+    insertInlineImage(image, file?.name?.replace(/\.[^.]+$/, "") || "Article image");
     showToast("Image inserted");
   } catch (error) {
     showToast(error.message);
@@ -257,17 +298,23 @@ $("#inline-image-input").addEventListener("change", async event => {
 });
 
 $("#article-body").addEventListener("paste", async event => {
-  const file = [...(event.clipboardData?.files || [])].find(item => item.type.startsWith("image/"));
-  if (!file) return;
+  const clipboard = event.clipboardData;
+  const file = [...(clipboard?.files || []), ...[...(clipboard?.items || [])].map(item => item.getAsFile()).filter(Boolean)].find(item => item.type.startsWith("image/"));
+  const htmlImage = clipboard?.getData("text/html")?.match(/<img[^>]+src=["']([^"']+)["']/i)?.[1];
+  const textImage = clipboard?.getData("text/plain")?.trim();
+  const pastedImage = htmlImage || (/^(data:image\/|https?:\/\/)/.test(textImage || "") ? textImage : "");
+  if (!file && !pastedImage) return;
   event.preventDefault();
   try {
-    const image = await readImage(file);
-    insertTextAtCursor(event.currentTarget, imageMarkdown(image));
+    const image = file ? await readImage(file) : pastedImage;
+    insertInlineImage(image);
     showToast("Pasted image inserted");
   } catch (error) {
     showToast(error.message);
   }
 });
+
+$("#article-body").addEventListener("input", updateInlineImageStatus);
 
 $("#cancel-edit").addEventListener("click", resetArticleForm);
 
@@ -288,6 +335,7 @@ $("#article-form").addEventListener("submit", async event => {
     id: existingArticle?.id || slugify(data.get("title")), title: data.get("title").trim(),
     tags: data.get("tags").split(",").map(tag => tag.trim()).filter(Boolean),
     summary: data.get("summary").trim(), body: data.get("body").trim(), image: image || existingArticle?.image || "",
+    inlineImages: pruneInlineImages(data.get("body").trim(), inlineImagesDraft),
     date: existingArticle?.date || new Intl.DateTimeFormat("en-US", { month: "long", day: "2-digit", year: "numeric" }).format(new Date()),
     readTime: data.get("readTime").trim() || `${Math.max(1, Math.ceil(data.get("body").trim().split(/\s+/).length / 220))} min read`
   };
