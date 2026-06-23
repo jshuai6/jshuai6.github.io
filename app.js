@@ -251,6 +251,13 @@ function showToast(message) {
   showToast.timeout = setTimeout(() => toast.classList.remove("show"), 2400);
 }
 
+function showStudioNotice(message) {
+  const notice = $("#studio-notice");
+  if (!notice) return showToast(message);
+  notice.textContent = message;
+  notice.classList.add("show");
+}
+
 document.addEventListener("click", event => {
   const tag = event.target.closest("[data-tag]");
   if (tag) { activeTag = tag.dataset.tag; renderArticles(); }
@@ -289,15 +296,16 @@ $("#insert-inline-image").addEventListener("click", () => $("#inline-image-input
 $("#inline-image-input").addEventListener("change", async event => {
   const file = event.currentTarget.files[0];
   if (!file) {
-    showToast("No image selected");
+    showStudioNotice("No image selected.");
     return;
   }
   try {
+    showStudioNotice("Preparing image...");
     const image = await readImage(file);
     insertInlineImage(image, file?.name?.replace(/\.[^.]+$/, "") || "Article image");
-    showToast("Image inserted");
+    showStudioNotice("Image inserted. Look for the [[image:...]] marker in the article text.");
   } catch (error) {
-    showToast(error.message);
+    showStudioNotice(error.message);
   } finally {
     event.currentTarget.value = "";
   }
@@ -312,11 +320,12 @@ $("#article-body").addEventListener("paste", async event => {
   if (!file && !pastedImage) return;
   event.preventDefault();
   try {
+    showStudioNotice("Preparing pasted image...");
     const image = file ? await readImage(file) : pastedImage;
     insertInlineImage(image);
-    showToast("Pasted image inserted");
+    showStudioNotice("Pasted image inserted. Look for the [[image:...]] marker in the article text.");
   } catch (error) {
-    showToast(error.message);
+    showStudioNotice(error.message);
   }
 });
 

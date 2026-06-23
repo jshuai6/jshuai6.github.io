@@ -8,8 +8,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=20260623-image-button" />
-    <script src="app.js?v=20260623-image-button" defer></script>
+    <link rel="stylesheet" href="styles.css?v=20260623-studio-notice" />
+    <script src="app.js?v=20260623-studio-notice" defer></script>
   </head>
   <body>
     <div class="grain" aria-hidden="true"></div>
@@ -100,6 +100,7 @@
             <input class="sr-only" id="inline-image-input" type="file" accept="image/*" />
             <small id="inline-image-status">No inline images inserted yet.</small>
           </div>
+          <p class="studio-notice" id="studio-notice" role="status" aria-live="polite"></p>
           <div class="form-actions">
             <button class="button primary" id="article-submit" type="submit">Publish article ↗</button>
             <button class="button secondary" id="cancel-edit" type="button" hidden>Cancel edit</button>
