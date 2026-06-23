@@ -30,7 +30,15 @@ const seedArticles = [
 
 const storage = {
   get(key, fallback) { try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch { return fallback; } },
-  set(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch { showToast("Storage is full—try a shorter article"); } }
+  set(key, value) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+      return true;
+    } catch {
+      showToast("Storage is full—use fewer or smaller images");
+      return false;
+    }
+  }
 };
 
 let articles = storage.get("field-notes-articles", seedArticles);
@@ -40,14 +48,31 @@ let searchTerm = "";
 const $ = (selector, scope = document) => scope.querySelector(selector);
 const $$ = (selector, scope = document) => [...scope.querySelectorAll(selector)];
 const escapeHTML = (value = "") => String(value).replace(/[&<>'"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
+const compressedImage = file => new Promise((resolve, reject) => {
+  const image = new Image();
+  const url = URL.createObjectURL(file);
+  image.onload = () => {
+    const maxWidth = 1200;
+    const scale = Math.min(1, maxWidth / image.width);
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(image.width * scale));
+    canvas.height = Math.max(1, Math.round(image.height * scale));
+    canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
+    URL.revokeObjectURL(url);
+    const output = canvas.toDataURL("image/jpeg", 0.82);
+    resolve(output.length > 1200000 ? canvas.toDataURL("image/jpeg", 0.68) : output);
+  };
+  image.onerror = () => {
+    URL.revokeObjectURL(url);
+    reject(new Error("The image could not be read"));
+  };
+  image.src = url;
+});
 const readImage = file => new Promise((resolve, reject) => {
   if (!file || !file.size) return resolve("");
   if (!file.type.startsWith("image/")) return reject(new Error("Please choose an image file"));
-  if (file.size > 1500000) return reject(new Error("Please choose an image under 1.5 MB"));
-  const reader = new FileReader();
-  reader.onload = () => resolve(reader.result);
-  reader.onerror = () => reject(new Error("The image could not be read"));
-  reader.readAsDataURL(file);
+  if (file.size > 5000000) return reject(new Error("Please choose an image under 5 MB"));
+  compressedImage(file).then(resolve).catch(reject);
 });
 const imageMarkdown = (src, alt = "Article image") => `\n\n![${alt}](${src})\n\n`;
 
@@ -61,13 +86,13 @@ function insertTextAtCursor(textarea, text) {
 }
 
 function renderArticleBody(body) {
-  const imagePattern = /!\[([^\]]*)\]\(([^)]+)\)/g;
+  const imagePattern = /!\[([^\]]*)\]\((data:image\/[^)\s]+|https?:\/\/[^)\s]+)\)|(data:image\/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/=]+)|<img[^>]+src=["']([^"']+)["'][^>]*>/g;
   const pieces = [];
   let cursor = 0;
   let match;
   while ((match = imagePattern.exec(body)) !== null) {
     if (match.index > cursor) pieces.push({ type: "text", value: body.slice(cursor, match.index) });
-    pieces.push({ type: "image", alt: match[1], src: match[2] });
+    pieces.push({ type: "image", alt: match[1] || "Article image", src: match[2] || match[3] || match[4] });
     cursor = match.index + match[0].length;
   }
   if (cursor < body.length) pieces.push({ type: "text", value: body.slice(cursor) });
@@ -200,9 +225,10 @@ document.addEventListener("click", event => {
   }
   const deleteArticle = event.target.closest("[data-delete-article]");
   if (deleteArticle) {
-    articles = articles.filter(article => article.id !== deleteArticle.dataset.deleteArticle);
+    const nextArticles = articles.filter(article => article.id !== deleteArticle.dataset.deleteArticle);
     if ($("#article-form").dataset.editingId === deleteArticle.dataset.deleteArticle) resetArticleForm();
-    storage.set("field-notes-articles", articles); renderArticles(); renderManagement(); showToast("Article deleted");
+    if (!storage.set("field-notes-articles", nextArticles)) return;
+    articles = nextArticles; renderArticles(); renderManagement(); showToast("Article deleted");
   }
   const editArticle = event.target.closest("[data-edit-article]");
   if (editArticle) startEditingArticle(editArticle.dataset.editArticle);
@@ -265,8 +291,9 @@ $("#article-form").addEventListener("submit", async event => {
     date: existingArticle?.date || new Intl.DateTimeFormat("en-US", { month: "long", day: "2-digit", year: "numeric" }).format(new Date()),
     readTime: data.get("readTime").trim() || `${Math.max(1, Math.ceil(data.get("body").trim().split(/\s+/).length / 220))} min read`
   };
-  articles = existingArticle ? articles.map(item => item.id === editingId ? article : item) : [article, ...articles];
-  storage.set("field-notes-articles", articles);
+  const nextArticles = existingArticle ? articles.map(item => item.id === editingId ? article : item) : [article, ...articles];
+  if (!storage.set("field-notes-articles", nextArticles)) return;
+  articles = nextArticles;
   resetArticleForm();
   renderArticles();
   renderManagement();
