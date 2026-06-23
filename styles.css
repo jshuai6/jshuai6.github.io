@@ -61,7 +61,8 @@ h1 em { font-weight: 400; color: var(--rust); }
 .about-lead { width: min(620px, 100%); margin: 35px 0 0; font: 29px/1.25 var(--serif); }
 .about-copy { width: min(760px, 100%); }
 .about-copy > p { font: 22px/1.55 var(--serif); }
-.contact-row { margin-top: 60px; padding-top: 18px; border-top: 1px solid var(--ink); display: flex; justify-content: space-between; font: 10px var(--mono); text-transform: uppercase; }
+.contact-row { margin-top: 60px; padding-top: 18px; border-top: 1px solid var(--ink); display: flex; flex-wrap: wrap; gap: 16px 28px; font: 10px var(--mono); text-transform: uppercase; }
+.contact-row a { text-decoration: none; }
 
 .article-reading { width: min(800px, calc(100% - 48px)); padding: 80px 0 130px; }
 .back-link { display: inline-block; margin-bottom: 70px; font: 11px var(--mono); text-decoration: none; text-transform: uppercase; }
