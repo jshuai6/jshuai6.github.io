@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Page not found</title>
+    <script>
+      if (window.location.pathname === "/home" || window.location.pathname === "/home/") {
+        window.location.replace("/");
+      }
+    </script>
+  </head>
+  <body>
+    <main>
+      <h1>Page not found</h1>
+      <p><a href="/">Go to homepage</a></p>
+    </main>
+  </body>
+</html>
