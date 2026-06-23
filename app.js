@@ -362,6 +362,7 @@ document.addEventListener("click", event => {
   if (card) location.hash = `#article/${card.dataset.articleId}`;
   if (event.target.closest('[data-action="open-studio"]')) openStudio();
   if (event.target.closest('[data-action="close-studio"]')) $("#studio-dialog").close();
+  if (event.target.closest('[data-action="back-to-top"]')) window.scrollTo({ top: 0, behavior: "smooth" });
   if (event.target.closest('[data-action="clear-filters"]')) { activeTag = "All"; searchTerm = ""; $("#article-search").value = ""; renderArticles(); }
   const tab = event.target.closest("[data-studio-tab]");
   if (tab) {
