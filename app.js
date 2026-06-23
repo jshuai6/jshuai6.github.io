@@ -61,14 +61,49 @@ function insertTextAtCursor(textarea, text) {
 }
 
 function renderArticleBody(body) {
-  return body.split(/\n\s*\n/).map(block => {
-    const trimmed = block.trim();
-    const image = trimmed.match(/^!\[([^\]]*)\]\((data:image\/[^)]+)\)$/);
-    if (image) {
-      return `<figure class="inline-article-image"><img src="${escapeHTML(image[2])}" alt="${escapeHTML(image[1] || "Article image")}" /></figure>`;
+  const imagePattern = /!\[([^\]]*)\]\(([^)]+)\)/g;
+  const pieces = [];
+  let cursor = 0;
+  let match;
+  while ((match = imagePattern.exec(body)) !== null) {
+    if (match.index > cursor) pieces.push({ type: "text", value: body.slice(cursor, match.index) });
+    pieces.push({ type: "image", alt: match[1], src: match[2] });
+    cursor = match.index + match[0].length;
+  }
+  if (cursor < body.length) pieces.push({ type: "text", value: body.slice(cursor) });
+
+  return pieces.map(piece => {
+    if (piece.type === "image") {
+      const safeImage = piece.src.startsWith("data:image/") || piece.src.startsWith("https://") || piece.src.startsWith("http://");
+      return safeImage ? `<figure class="inline-article-image"><img src="${escapeHTML(piece.src)}" alt="${escapeHTML(piece.alt || "Article image")}" /></figure>` : "";
     }
-    return `<p>${escapeHTML(trimmed)}</p>`;
+    return piece.value.split(/\n\s*\n/).map(paragraph => paragraph.trim()).filter(Boolean).map(paragraph => `<p>${escapeHTML(paragraph)}</p>`).join("");
   }).join("");
+}
+
+function resetArticleForm() {
+  const form = $("#article-form");
+  form.reset();
+  delete form.dataset.editingId;
+  $("#article-submit").textContent = "Publish article ↗";
+  $("#cancel-edit").hidden = true;
+}
+
+function startEditingArticle(id) {
+  const article = articles.find(item => item.id === id);
+  if (!article) return;
+  const form = $("#article-form");
+  form.dataset.editingId = article.id;
+  form.elements.title.value = article.title;
+  form.elements.tags.value = article.tags.join(", ");
+  form.elements.readTime.value = article.readTime;
+  form.elements.summary.value = article.summary;
+  form.elements.body.value = article.body;
+  form.elements.image.value = "";
+  $("#article-submit").textContent = "Save article ↗";
+  $("#cancel-edit").hidden = false;
+  form.scrollIntoView({ behavior: "smooth", block: "start" });
+  form.elements.title.focus();
 }
 
 function renderTags() {
@@ -98,7 +133,13 @@ function renderArticles() {
 
 function renderManagement() {
   $("#manage-articles").innerHTML = `<p class="eyebrow">Published · ${articles.length}</p>` + articles.map(article => `
-    <div class="manage-item"><div><strong>${escapeHTML(article.title)}</strong><small>${article.tags.map(escapeHTML).join(" · ")}</small></div><button class="delete-button" data-delete-article="${escapeHTML(article.id)}" type="button">Delete</button></div>`).join("");
+    <div class="manage-item">
+      <div><strong>${escapeHTML(article.title)}</strong><small>${article.tags.map(escapeHTML).join(" · ")}</small></div>
+      <div class="manage-actions">
+        <button class="edit-button" data-edit-article="${escapeHTML(article.id)}" type="button">Edit</button>
+        <button class="delete-button" data-delete-article="${escapeHTML(article.id)}" type="button">Delete</button>
+      </div>
+    </div>`).join("");
 }
 
 function showArticle(id) {
@@ -160,8 +201,11 @@ document.addEventListener("click", event => {
   const deleteArticle = event.target.closest("[data-delete-article]");
   if (deleteArticle) {
     articles = articles.filter(article => article.id !== deleteArticle.dataset.deleteArticle);
+    if ($("#article-form").dataset.editingId === deleteArticle.dataset.deleteArticle) resetArticleForm();
     storage.set("field-notes-articles", articles); renderArticles(); renderManagement(); showToast("Article deleted");
   }
+  const editArticle = event.target.closest("[data-edit-article]");
+  if (editArticle) startEditingArticle(editArticle.dataset.editArticle);
 });
 
 document.addEventListener("keydown", event => {
@@ -199,9 +243,14 @@ $("#article-body").addEventListener("paste", async event => {
   }
 });
 
+$("#cancel-edit").addEventListener("click", resetArticleForm);
+
 $("#article-form").addEventListener("submit", async event => {
   event.preventDefault();
+  const form = event.currentTarget;
   const data = new FormData(event.currentTarget);
+  const editingId = form.dataset.editingId;
+  const existingArticle = articles.find(article => article.id === editingId);
   let image = "";
   try {
     image = await readImage(data.get("image"));
@@ -210,13 +259,19 @@ $("#article-form").addEventListener("submit", async event => {
     return;
   }
   const article = {
-    id: slugify(data.get("title")), title: data.get("title").trim(),
+    id: existingArticle?.id || slugify(data.get("title")), title: data.get("title").trim(),
     tags: data.get("tags").split(",").map(tag => tag.trim()).filter(Boolean),
-    summary: data.get("summary").trim(), body: data.get("body").trim(), image,
-    date: new Intl.DateTimeFormat("en-US", { month: "long", day: "2-digit", year: "numeric" }).format(new Date()),
+    summary: data.get("summary").trim(), body: data.get("body").trim(), image: image || existingArticle?.image || "",
+    date: existingArticle?.date || new Intl.DateTimeFormat("en-US", { month: "long", day: "2-digit", year: "numeric" }).format(new Date()),
     readTime: data.get("readTime").trim() || `${Math.max(1, Math.ceil(data.get("body").trim().split(/\s+/).length / 220))} min read`
   };
-  articles.unshift(article); storage.set("field-notes-articles", articles); event.currentTarget.reset(); renderArticles(); renderManagement(); showToast("Article published");
+  articles = existingArticle ? articles.map(item => item.id === editingId ? article : item) : [article, ...articles];
+  storage.set("field-notes-articles", articles);
+  resetArticleForm();
+  renderArticles();
+  renderManagement();
+  showToast(existingArticle ? "Article updated" : "Article published");
+  if (location.hash === `#article/${article.id}`) showArticle(article.id);
 });
 
 window.addEventListener("hashchange", route);
