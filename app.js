@@ -1,0 +1,158 @@
+const seedArticles = [
+  {
+    id: "attention-is-a-practice",
+    title: "Attention is a practice",
+    tags: ["Notes", "Creative Life"],
+    summary: "On noticing what we usually pass by, and why the quality of our attention quietly shapes the quality of our work.",
+    body: "The world does not suffer from a shortage of interesting things. It suffers from our habit of moving past them too quickly. Attention is less like a spotlight and more like a muscle: neglected, it weakens; used deliberately, it becomes generous.\n\nI started writing one small note each morning—not for an audience, and rarely about anything traditionally important. A decision I kept postponing. A sentence from a book. The geometry of a problem I was trying to solve. The ritual changed almost nothing about my schedule, but it changed the texture of my days.\n\nCreative work begins here, before the making. It begins in the decision to stay with something a few seconds longer than comfort requires. To look again. To let the ordinary become specific.\n\nThe best ideas I know did not arrive dramatically. They emerged from patient looking: a small contradiction, an overlooked need, the peculiar way a stranger folded a newspaper. Attention is how the world tells us what to make next.",
+    date: "June 14, 2026",
+    readTime: "4 min read"
+  },
+  {
+    id: "the-useful-mess",
+    title: "In praise of the useful mess",
+    tags: ["Process", "Design"],
+    summary: "A tidy desk is lovely. A living process is usually not. Some thoughts on drafts, friction, and keeping the evidence of thinking visible.",
+    body: "My favorite stage of any project is the one nobody wants to present. The table is covered in crooked printouts. Half the sentences contradict the other half. There are arrows going nowhere. The work looks uncertain because it is alive.\n\nWe often confuse clarity of presentation with clarity of thought. But thought needs somewhere to be clumsy. It needs permission to make a bad version, then a stranger version, before discovering the true one hiding underneath.\n\nThe useful mess is not chaos for its own sake. It is an external memory. Every scrap records a decision we might otherwise repeat, and every failed arrangement narrows the field. Clean it up too soon and the work can become polished but thin.\n\nI still reset the room when a project ends. But while it is becoming, I leave the evidence out. The mess reminds me that uncertainty is not a failure of the process. It is the process doing its work.",
+    date: "May 27, 2026",
+    readTime: "5 min read"
+  },
+  {
+    id: "walking-without-arriving",
+    title: "Walking without arriving",
+    tags: ["Places", "Reflection"],
+    summary: "Field notes from an afternoon with no destination, no agenda, and more time than plans.",
+    body: "I left the house with no destination, which is a small rebellion in a city that constantly asks where you are going. The fog had thinned but not lifted. Everything at a distance looked politely erased.\n\nWithout a route, the neighborhood rearranged itself. A street I knew became a sequence of colors: oxidized green, construction orange, the improbable blue of a laundromat chair. I followed curiosity instead of signs.\n\nA walk can become too efficient if I let it. Choose the route, reach the place, move on. That afternoon I tried a different rule: pause whenever something asked for a second look. Sometimes the better thought arrived next; often nothing did. Both felt useful.\n\nI returned three hours later with no obvious result. More importantly, I returned with the pleasant sense that the familiar world had been quietly replaced while I wasn’t looking.",
+    date: "April 09, 2026",
+    readTime: "3 min read"
+  }
+];
+
+const storage = {
+  get(key, fallback) { try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch { return fallback; } },
+  set(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch { showToast("Storage is full—try a shorter article"); } }
+};
+
+let articles = storage.get("field-notes-articles", seedArticles);
+let activeTag = "All";
+let searchTerm = "";
+
+const $ = (selector, scope = document) => scope.querySelector(selector);
+const $$ = (selector, scope = document) => [...scope.querySelectorAll(selector)];
+const escapeHTML = (value = "") => String(value).replace(/[&<>'"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
+
+function renderTags() {
+  const tags = ["All", ...new Set(articles.flatMap(article => article.tags))];
+  if (!tags.includes(activeTag)) activeTag = "All";
+  $("#tag-filters").innerHTML = tags.map(tag => `<button class="tag-filter ${tag === activeTag ? "active" : ""}" data-tag="${escapeHTML(tag)}" type="button">${escapeHTML(tag)}</button>`).join("");
+}
+
+function renderArticles() {
+  renderTags();
+  const filtered = articles.filter(article => {
+    const tagMatch = activeTag === "All" || article.tags.includes(activeTag);
+    const haystack = `${article.title} ${article.summary} ${article.tags.join(" ")}`.toLowerCase();
+    return tagMatch && haystack.includes(searchTerm.toLowerCase());
+  });
+  $("#article-grid").innerHTML = filtered.map((article, index) => `
+    <article class="article-card" tabindex="0" data-article-id="${escapeHTML(article.id)}">
+      <div class="article-number"><span>0${index + 1}</span><span>${escapeHTML(article.readTime)}</span></div>
+      <h2>${escapeHTML(article.title)}</h2>
+      <p>${escapeHTML(article.summary)}</p>
+      <div>${article.tags.map(tag => `<span class="tag">#${escapeHTML(tag)}</span>`).join("")}</div>
+      <span class="arrow" aria-hidden="true">↗</span>
+    </article>`).join("");
+  $("#article-empty").hidden = filtered.length > 0;
+}
+
+function renderManagement() {
+  $("#manage-articles").innerHTML = `<p class="eyebrow">Published · ${articles.length}</p>` + articles.map(article => `
+    <div class="manage-item"><div><strong>${escapeHTML(article.title)}</strong><small>${article.tags.map(escapeHTML).join(" · ")}</small></div><button class="delete-button" data-delete-article="${escapeHTML(article.id)}" type="button">Delete</button></div>`).join("");
+}
+
+function showArticle(id) {
+  const article = articles.find(item => item.id === id);
+  if (!article) { location.hash = "#blog"; return; }
+  $("#article-reading").innerHTML = `
+    <a class="back-link" href="#blog">← Back to journal</a>
+    <p class="eyebrow">${article.tags.map(tag => `#${escapeHTML(tag)}`).join(" &nbsp; ")}</p>
+    <h1>${escapeHTML(article.title)}</h1>
+    <div class="reading-meta"><span>${escapeHTML(article.date)}</span><span>${escapeHTML(article.readTime)}</span></div>
+    <div class="article-body">${article.body.split(/\n\s*\n/).map(p => `<p>${escapeHTML(p)}</p>`).join("")}</div>`;
+  showView("article");
+  document.title = article.title;
+}
+
+function showView(view) {
+  $$("[data-view]").forEach(section => section.hidden = section.dataset.view !== view);
+  $$("[data-route]").forEach(link => link.classList.toggle("active", link.dataset.route === view || (view === "article" && link.dataset.route === "blog")));
+  $(".main-nav").classList.remove("open");
+  $(".menu-button").setAttribute("aria-expanded", "false");
+  window.scrollTo(0, 0);
+}
+
+function route() {
+  const hash = location.hash.replace("#", "") || "blog";
+  if (hash.startsWith("article/")) return showArticle(hash.split("/")[1]);
+  const view = ["blog", "about"].includes(hash) ? hash : "blog";
+  showView(view);
+  document.title = view === "blog" ? "Personal Journal" : view[0].toUpperCase() + view.slice(1);
+}
+
+function slugify(value) {
+  const base = value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return `${base || "note"}-${Date.now().toString(36)}`;
+}
+
+function showToast(message) {
+  const toast = $("#toast");
+  toast.textContent = message;
+  toast.classList.add("show");
+  clearTimeout(showToast.timeout);
+  showToast.timeout = setTimeout(() => toast.classList.remove("show"), 2400);
+}
+
+document.addEventListener("click", event => {
+  const tag = event.target.closest("[data-tag]");
+  if (tag) { activeTag = tag.dataset.tag; renderArticles(); }
+  const card = event.target.closest("[data-article-id]");
+  if (card) location.hash = `#article/${card.dataset.articleId}`;
+  if (event.target.closest('[data-action="open-studio"]')) { renderManagement(); $("#studio-dialog").showModal(); }
+  if (event.target.closest('[data-action="close-studio"]')) $("#studio-dialog").close();
+  if (event.target.closest('[data-action="clear-filters"]')) { activeTag = "All"; searchTerm = ""; $("#article-search").value = ""; renderArticles(); }
+  const tab = event.target.closest("[data-studio-tab]");
+  if (tab) {
+    $$("[data-studio-tab]").forEach(button => button.classList.toggle("active", button === tab));
+    $$("[data-studio-panel]").forEach(panel => panel.hidden = panel.dataset.studioPanel !== tab.dataset.studioTab);
+  }
+  const deleteArticle = event.target.closest("[data-delete-article]");
+  if (deleteArticle) {
+    articles = articles.filter(article => article.id !== deleteArticle.dataset.deleteArticle);
+    storage.set("field-notes-articles", articles); renderArticles(); renderManagement(); showToast("Article deleted");
+  }
+});
+
+document.addEventListener("keydown", event => {
+  if ((event.key === "Enter" || event.key === " ") && event.target.matches("[data-article-id]")) { event.preventDefault(); event.target.click(); }
+});
+
+$("#article-search").addEventListener("input", event => { searchTerm = event.target.value; renderArticles(); });
+$(".menu-button").addEventListener("click", event => {
+  const open = $(".main-nav").classList.toggle("open"); event.currentTarget.setAttribute("aria-expanded", String(open));
+});
+
+$("#article-form").addEventListener("submit", event => {
+  event.preventDefault();
+  const data = new FormData(event.currentTarget);
+  const article = {
+    id: slugify(data.get("title")), title: data.get("title").trim(),
+    tags: data.get("tags").split(",").map(tag => tag.trim()).filter(Boolean),
+    summary: data.get("summary").trim(), body: data.get("body").trim(),
+    date: new Intl.DateTimeFormat("en-US", { month: "long", day: "2-digit", year: "numeric" }).format(new Date()),
+    readTime: data.get("readTime").trim() || `${Math.max(1, Math.ceil(data.get("body").trim().split(/\s+/).length / 220))} min read`
+  };
+  articles.unshift(article); storage.set("field-notes-articles", articles); event.currentTarget.reset(); renderArticles(); renderManagement(); showToast("Article published");
+});
+
+window.addEventListener("hashchange", route);
+renderArticles(); renderManagement(); route();

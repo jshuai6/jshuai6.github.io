@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="A simple personal website with essays, notes, and a brief introduction." />
+    <title>Personal Journal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <div class="grain" aria-hidden="true"></div>
+    <header class="site-header">
+      <div></div>
+      <nav class="main-nav" aria-label="Main navigation">
+        <a href="#blog" data-route="blog">Home</a>
+        <a href="#about" data-route="about">About</a>
+        <button class="mobile-studio" type="button" data-action="open-studio"><span class="status-dot"></span> Studio</button>
+      </nav>
+      <button class="text-button studio-trigger" type="button" data-action="open-studio">
+        <span class="status-dot"></span> Studio
+      </button>
+      <button class="menu-button" aria-label="Toggle menu" aria-expanded="false" type="button">Menu</button>
+    </header>
+
+    <main>
+      <section class="view blog-view" data-view="blog">
+        <div class="blog-tools page-shell">
+          <div class="tag-list" id="tag-filters" aria-label="Filter articles by tag"></div>
+          <label class="search-field">
+            <span class="sr-only">Search articles</span>
+            <input id="article-search" type="search" placeholder="Search the journal" />
+            <span aria-hidden="true">↗</span>
+          </label>
+        </div>
+
+        <div class="article-grid page-shell" id="article-grid"></div>
+        <div class="empty-state page-shell" id="article-empty" hidden>
+          <p class="eyebrow">Nothing here yet</p>
+          <h2>No notes match that search.</h2>
+          <button class="button secondary" type="button" data-action="clear-filters">Clear filters</button>
+        </div>
+      </section>
+
+      <section class="view about-view" data-view="about" hidden>
+        <div class="about-layout page-shell">
+          <div class="about-intro">
+            <p class="eyebrow">A brief introduction</p>
+            <h1>Hello, I’m <em>Alex.</em></h1>
+            <p class="about-lead">Designer, builder, and enthusiastic collector of half-finished notebooks.</p>
+          </div>
+          <div class="about-copy">
+            <p>I made this site as a place to think in public—slowly. It holds essays about making things and a growing archive of ideas I don’t want to lose.</p>
+            <p>By day, I work at the intersection of design and technology. Away from the screen, I’m usually reading, cooking for friends, or looking for a better pencil.</p>
+            <div class="contact-row">
+              <a href="mailto:hello@example.com">hello@example.com ↗</a>
+              <span>Based in San Francisco</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <article class="view article-view" data-view="article" hidden>
+        <div class="article-reading page-shell" id="article-reading"></div>
+      </article>
+    </main>
+
+    <footer class="site-footer page-shell">
+      <p>Made with care, kept intentionally small.</p>
+      <a href="#blog">Back to top ↑</a>
+    </footer>
+
+    <dialog class="studio-dialog" id="studio-dialog">
+      <div class="dialog-head">
+        <div>
+          <p class="eyebrow">Private workspace</p>
+          <h2>Publishing studio</h2>
+        </div>
+        <button class="icon-button" data-action="close-studio" aria-label="Close studio" type="button">×</button>
+      </div>
+      <div class="studio-tabs" role="tablist">
+        <button class="active" role="tab" data-studio-tab="articles" type="button">Articles</button>
+      </div>
+      <section class="studio-panel" data-studio-panel="articles">
+        <form id="article-form" class="editor-form">
+          <label>Title<input name="title" required placeholder="A title worth opening" /></label>
+          <div class="form-row">
+            <label>Tags<input name="tags" required placeholder="Design, Notes" /></label>
+            <label>Read time<input name="readTime" placeholder="4 min read" /></label>
+          </div>
+          <label>Summary<textarea name="summary" required rows="2" placeholder="A short introduction for the home page"></textarea></label>
+          <label>Article<textarea name="body" required rows="7" placeholder="Write your article here. Separate paragraphs with a blank line."></textarea></label>
+          <button class="button primary" type="submit">Publish article ↗</button>
+        </form>
+        <div class="manage-list" id="manage-articles"></div>
+      </section>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>

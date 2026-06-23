@@ -1,0 +1,19 @@
+# Personal website
+
+A dependency-free personal website with a blog, an about page, and an in-browser article studio.
+
+## Run locally
+
+```bash
+python3 -m http.server 8000
+```
+
+Then open `http://localhost:8000`.
+
+## Publishing
+
+Select **Studio** in the top-right corner to publish or delete articles locally. Content is saved in the browser's `localStorage`, so it persists on that browser without a database.
+
+For GitHub Pages, commit changes to `index.html`, `styles.css`, `app.js`, and `.nojekyll`, then publish the repository from **Settings → Pages**. Because GitHub Pages is static hosting, content saved only through Studio will not automatically update the public repository.
+
+Edit the introduction and contact details directly in `index.html`. The sample articles live at the top of `app.js`.
