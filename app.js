@@ -49,6 +49,27 @@ const readImage = file => new Promise((resolve, reject) => {
   reader.onerror = () => reject(new Error("The image could not be read"));
   reader.readAsDataURL(file);
 });
+const imageMarkdown = (src, alt = "Article image") => `\n\n![${alt}](${src})\n\n`;
+
+function insertTextAtCursor(textarea, text) {
+  const start = textarea.selectionStart ?? textarea.value.length;
+  const end = textarea.selectionEnd ?? textarea.value.length;
+  textarea.value = `${textarea.value.slice(0, start)}${text}${textarea.value.slice(end)}`;
+  const cursor = start + text.length;
+  textarea.focus();
+  textarea.setSelectionRange(cursor, cursor);
+}
+
+function renderArticleBody(body) {
+  return body.split(/\n\s*\n/).map(block => {
+    const trimmed = block.trim();
+    const image = trimmed.match(/^!\[([^\]]*)\]\((data:image\/[^)]+)\)$/);
+    if (image) {
+      return `<figure class="inline-article-image"><img src="${escapeHTML(image[2])}" alt="${escapeHTML(image[1] || "Article image")}" /></figure>`;
+    }
+    return `<p>${escapeHTML(trimmed)}</p>`;
+  }).join("");
+}
 
 function renderTags() {
   const tags = ["All", ...new Set(articles.flatMap(article => article.tags))];
@@ -89,7 +110,7 @@ function showArticle(id) {
     <h1>${escapeHTML(article.title)}</h1>
     <div class="reading-meta"><span>${escapeHTML(article.date)}</span><span>${escapeHTML(article.readTime)}</span></div>
     ${article.image ? `<img class="article-hero-image" src="${escapeHTML(article.image)}" alt="${escapeHTML(article.title)}" />` : ""}
-    <div class="article-body">${article.body.split(/\n\s*\n/).map(p => `<p>${escapeHTML(p)}</p>`).join("")}</div>`;
+    <div class="article-body">${renderArticleBody(article.body)}</div>`;
   showView("article");
   document.title = article.title;
 }
@@ -150,6 +171,32 @@ document.addEventListener("keydown", event => {
 $("#article-search").addEventListener("input", event => { searchTerm = event.target.value; renderArticles(); });
 $(".menu-button").addEventListener("click", event => {
   const open = $(".main-nav").classList.toggle("open"); event.currentTarget.setAttribute("aria-expanded", String(open));
+});
+
+$("#inline-image-input").addEventListener("change", async event => {
+  const file = event.currentTarget.files[0];
+  try {
+    const image = await readImage(file);
+    insertTextAtCursor($("#article-body"), imageMarkdown(image, file?.name?.replace(/\.[^.]+$/, "") || "Article image"));
+    showToast("Image inserted");
+  } catch (error) {
+    showToast(error.message);
+  } finally {
+    event.currentTarget.value = "";
+  }
+});
+
+$("#article-body").addEventListener("paste", async event => {
+  const file = [...(event.clipboardData?.files || [])].find(item => item.type.startsWith("image/"));
+  if (!file) return;
+  event.preventDefault();
+  try {
+    const image = await readImage(file);
+    insertTextAtCursor(event.currentTarget, imageMarkdown(image));
+    showToast("Pasted image inserted");
+  } catch (error) {
+    showToast(error.message);
+  }
 });
 
 $("#article-form").addEventListener("submit", async event => {

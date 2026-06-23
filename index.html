@@ -94,7 +94,11 @@
           </div>
           <label>Article image<input name="image" type="file" accept="image/*" /></label>
           <label>Summary<textarea name="summary" required rows="2" placeholder="A short introduction for the home page"></textarea></label>
-          <label>Article<textarea name="body" required rows="7" placeholder="Write your article here. Separate paragraphs with a blank line."></textarea></label>
+          <label>Article<textarea id="article-body" name="body" required rows="7" placeholder="Write your article here. Separate paragraphs with a blank line. Paste an image or use Insert image to place it within the text."></textarea></label>
+          <div class="editor-tools">
+            <label class="button secondary">Insert image<input id="inline-image-input" type="file" accept="image/*" hidden /></label>
+            <small>Images are inserted wherever your cursor is in the article text.</small>
+          </div>
           <button class="button primary" type="submit">Publish article ↗</button>
         </form>
         <div class="manage-list" id="manage-articles"></div>
