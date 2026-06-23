@@ -24,10 +24,15 @@ if [ -z "$source_file" ]; then
 fi
 
 if [ -z "$source_file" ] || [ ! -f "$source_file" ]; then
-  echo "Could not find a downloaded posts.json file."
-  echo "Open Studio, click 'Download posts.json', then run ./publish-posts.sh again."
-  echo "You can also pass a file path: ./publish-posts.sh /path/to/posts.json"
-  exit 1
+  if ! git diff --quiet -- posts.json; then
+    source_file="posts.json"
+    echo "No downloaded posts.json found. Publishing the changed local posts.json instead."
+  else
+    echo "Could not find a downloaded posts.json file."
+    echo "Open Studio, click 'Download posts.json', then run ./publish-posts.sh again."
+    echo "You can also pass a file path: ./publish-posts.sh /path/to/posts.json"
+    exit 1
+  fi
 fi
 
 node -e '
