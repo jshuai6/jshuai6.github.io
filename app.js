@@ -1,5 +1,6 @@
 const articlesKey = "field-notes-articles";
 const backupKey = "field-notes-articles-backup";
+const postsFile = "posts.json";
 
 const storage = {
   get(key, fallback) {
@@ -29,8 +30,7 @@ const storage = {
   }
 };
 
-let articles = storage.get(articlesKey, []);
-if (articles.length) storage.set(articlesKey, articles);
+let articles = [];
 let activeTag = "All";
 let searchTerm = "";
 let inlineImagesDraft = {};
@@ -166,7 +166,7 @@ function resetArticleForm() {
   form.reset();
   inlineImagesDraft = {};
   delete form.dataset.editingId;
-  $("#article-submit").textContent = "Publish article ↗";
+  $("#article-submit").textContent = "Save article";
   $("#cancel-edit").hidden = true;
   updateInlineImageStatus();
 }
@@ -183,7 +183,7 @@ function startEditingArticle(id) {
   form.elements.body.value = article.body;
   form.elements.image.value = "";
   inlineImagesDraft = { ...(article.inlineImages || {}) };
-  $("#article-submit").textContent = "Save article ↗";
+  $("#article-submit").textContent = "Update article";
   $("#cancel-edit").hidden = false;
   updateInlineImageStatus();
   form.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -277,8 +277,7 @@ function showStudioNotice(message) {
 }
 
 function backupFilename() {
-  const stamp = new Date().toISOString().slice(0, 10);
-  return `kevin-blog-backup-${stamp}.json`;
+  return postsFile;
 }
 
 function downloadArticleBackup() {
@@ -294,7 +293,7 @@ function downloadArticleBackup() {
   link.click();
   link.remove();
   URL.revokeObjectURL(link.href);
-  showStudioNotice("Backup downloaded. Keep that file somewhere safe.");
+  showStudioNotice("posts.json downloaded. Commit it to GitHub to publish permanently.");
 }
 
 function normalizeImportedArticles(payload) {
@@ -333,6 +332,27 @@ function importArticleBackup(file) {
     }
   };
   reader.readAsText(file);
+}
+
+async function fetchPublishedArticles() {
+  try {
+    const response = await fetch(`${postsFile}?v=${Date.now()}`, { cache: "no-store" });
+    if (!response.ok) return [];
+    return normalizeImportedArticles(await response.json());
+  } catch {
+    return [];
+  }
+}
+
+async function initializeArticles() {
+  const publishedArticles = await fetchPublishedArticles();
+  const studioArticles = studioEnabled ? storage.get(articlesKey, null) : null;
+  articles = studioEnabled && Array.isArray(studioArticles) && studioArticles.length ? studioArticles : publishedArticles;
+  if (studioEnabled && !Array.isArray(studioArticles) && publishedArticles.length) storage.set(articlesKey, publishedArticles);
+  renderArticles();
+  renderManagement();
+  setupStudioAccess();
+  route();
 }
 
 document.addEventListener("click", event => {
@@ -443,9 +463,9 @@ $("#article-form").addEventListener("submit", async event => {
   resetArticleForm();
   renderArticles();
   renderManagement();
-  showStudioNotice(`${existingArticle ? "Article updated" : "Article published"}. Download a backup to keep a permanent copy.`);
+  showStudioNotice(`${existingArticle ? "Article updated" : "Article saved"}. Download posts.json and commit it to publish permanently.`);
   if (location.hash === `#article/${article.id}`) showArticle(article.id);
 });
 
 window.addEventListener("hashchange", route);
-renderArticles(); renderManagement(); setupStudioAccess(); route();
+initializeArticles();
