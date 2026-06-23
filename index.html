@@ -8,8 +8,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=20260623-image-markers" />
-    <script src="app.js?v=20260623-image-markers" defer></script>
+    <link rel="stylesheet" href="styles.css?v=20260623-image-button" />
+    <script src="app.js?v=20260623-image-button" defer></script>
   </head>
   <body>
     <div class="grain" aria-hidden="true"></div>
@@ -96,7 +96,8 @@
           <label>Summary<textarea name="summary" required rows="2" placeholder="A short introduction for the home page"></textarea></label>
           <label>Article<textarea id="article-body" name="body" required rows="7" placeholder="Write your article here. Separate paragraphs with a blank line. Paste an image or use Insert image to place it within the text."></textarea></label>
           <div class="editor-tools">
-            <label class="button secondary">Insert image<input id="inline-image-input" type="file" accept="image/*" hidden /></label>
+            <button class="button secondary" id="insert-inline-image" type="button">Insert image</button>
+            <input class="sr-only" id="inline-image-input" type="file" accept="image/*" />
             <small id="inline-image-status">No inline images inserted yet.</small>
           </div>
           <div class="form-actions">

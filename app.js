@@ -284,8 +284,14 @@ $(".menu-button").addEventListener("click", event => {
   const open = $(".main-nav").classList.toggle("open"); event.currentTarget.setAttribute("aria-expanded", String(open));
 });
 
+$("#insert-inline-image").addEventListener("click", () => $("#inline-image-input").click());
+
 $("#inline-image-input").addEventListener("change", async event => {
   const file = event.currentTarget.files[0];
+  if (!file) {
+    showToast("No image selected");
+    return;
+  }
   try {
     const image = await readImage(file);
     insertInlineImage(image, file?.name?.replace(/\.[^.]+$/, "") || "Article image");
