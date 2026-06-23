@@ -469,4 +469,5 @@ $("#article-form").addEventListener("submit", async event => {
 });
 
 window.addEventListener("hashchange", route);
+$("#copyright-year").textContent = new Date().getFullYear();
 initializeArticles();
