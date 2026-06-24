@@ -230,7 +230,7 @@ function showArticle(id) {
   const article = articles.find(item => item.id === id);
   if (!article) { navigateTo("/home"); return; }
   $("#article-reading").innerHTML = `
-    <a class="back-link" href="/home">← Back</a>
+    <a class="back-link" href="/home">← Back to journal</a>
     <p class="eyebrow">${article.tags.map(tag => `#${escapeHTML(tag)}`).join(" &nbsp; ")}</p>
     <h1>${escapeHTML(article.title)}</h1>
     <div class="reading-meta"><span>${escapeHTML(article.date)}</span><span>${escapeHTML(article.readTime)}</span></div>
