@@ -300,7 +300,7 @@ function showStudioNotice(message) {
 }
 
 function backupFilename() {
-  return postsFile;
+  return "posts.json";
 }
 
 function downloadArticleBackup() {
@@ -402,7 +402,7 @@ document.addEventListener("click", event => {
     const nextArticles = articles.filter(article => article.id !== deleteArticle.dataset.deleteArticle);
     if ($("#article-form").dataset.editingId === deleteArticle.dataset.deleteArticle) resetArticleForm();
     if (!storage.set(articlesKey, nextArticles)) return;
-    articles = nextArticles; renderArticles(); renderManagement(); showToast("Article deleted");
+    articles = nextArticles; renderArticles(); renderManagement(); showStudioNotice("Article deleted.");
   }
   const editArticle = event.target.closest("[data-edit-article]");
   if (editArticle) startEditingArticle(editArticle.dataset.editArticle);
