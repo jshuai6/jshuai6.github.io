@@ -271,7 +271,7 @@ function route() {
   if (routeState.articleId) return showArticle(routeState.articleId);
   const view = routeState.view || "blog";
   showView(view);
-  document.title = view === "blog" ? "Personal Journal" : view[0].toUpperCase() + view.slice(1);
+  document.title = view === "blog" ? "Kevin's Blog" : view[0].toUpperCase() + view.slice(1);
 }
 
 function navigateTo(path) {
