@@ -1,6 +1,6 @@
 const articlesKey = "field-notes-articles";
 const backupKey = "field-notes-articles-backup";
-const postsFile = "posts.json";
+const postsFile = "/posts.json";
 
 const storage = {
   get(key, fallback) {
@@ -228,9 +228,9 @@ function renderManagement() {
 
 function showArticle(id) {
   const article = articles.find(item => item.id === id);
-  if (!article) { location.hash = "#blog"; return; }
+  if (!article) { navigateTo("/blog"); return; }
   $("#article-reading").innerHTML = `
-    <a class="back-link" href="#blog">← Back to journal</a>
+    <a class="back-link" href="/blog">← Back to journal</a>
     <p class="eyebrow">${article.tags.map(tag => `#${escapeHTML(tag)}`).join(" &nbsp; ")}</p>
     <h1>${escapeHTML(article.title)}</h1>
     <div class="reading-meta"><span>${escapeHTML(article.date)}</span><span>${escapeHTML(article.readTime)}</span></div>
@@ -248,12 +248,35 @@ function showView(view) {
   window.scrollTo(0, 0);
 }
 
+function currentRoute() {
+  const hashRoute = location.hash.replace("#", "");
+  if (hashRoute === "blog") return { path: "/blog", replace: true };
+  if (hashRoute === "about") return { path: "/about", replace: true };
+  if (hashRoute.startsWith("article/")) return { path: `/${hashRoute}`, replace: true };
+
+  const path = location.pathname.replace(/\/$/, "") || "/";
+  if (location.pathname !== "/" && location.pathname.endsWith("/")) return { path, replace: true };
+  if (path === "/" || path === "/blog") return { view: "blog", path: "/blog" };
+  if (path === "/about") return { view: "about", path: "/about" };
+  if (path.startsWith("/article/")) return { articleId: path.split("/")[2], path };
+  return { view: "blog", path: "/blog", replace: true };
+}
+
 function route() {
-  const hash = location.hash.replace("#", "") || "blog";
-  if (hash.startsWith("article/")) return showArticle(hash.split("/")[1]);
-  const view = ["blog", "about"].includes(hash) ? hash : "blog";
+  const routeState = currentRoute();
+  if (routeState.replace) {
+    history.replaceState(null, "", routeState.path);
+    if (!routeState.view && !routeState.articleId) return route();
+  }
+  if (routeState.articleId) return showArticle(routeState.articleId);
+  const view = routeState.view || "blog";
   showView(view);
   document.title = view === "blog" ? "Personal Journal" : view[0].toUpperCase() + view.slice(1);
+}
+
+function navigateTo(path) {
+  history.pushState(null, "", path);
+  route();
 }
 
 function slugify(value) {
@@ -359,7 +382,12 @@ document.addEventListener("click", event => {
   const tag = event.target.closest("[data-tag]");
   if (tag) { activeTag = tag.dataset.tag; renderArticles(); }
   const card = event.target.closest("[data-article-id]");
-  if (card) location.hash = `#article/${card.dataset.articleId}`;
+  if (card) navigateTo(`/article/${card.dataset.articleId}`);
+  const routeLink = event.target.closest("[data-route], .back-link");
+  if (routeLink) {
+    event.preventDefault();
+    navigateTo(routeLink.getAttribute("href"));
+  }
   if (event.target.closest('[data-action="open-studio"]')) openStudio();
   if (event.target.closest('[data-action="close-studio"]')) $("#studio-dialog").close();
   if (event.target.closest('[data-action="back-to-top"]')) window.scrollTo({ top: 0, behavior: "smooth" });
@@ -465,9 +493,9 @@ $("#article-form").addEventListener("submit", async event => {
   renderArticles();
   renderManagement();
   showStudioNotice(`${existingArticle ? "Article updated" : "Article saved"}. Download posts.json and commit it to publish permanently.`);
-  if (location.hash === `#article/${article.id}`) showArticle(article.id);
+  if (location.pathname === `/article/${article.id}`) showArticle(article.id);
 });
 
-window.addEventListener("hashchange", route);
+window.addEventListener("popstate", route);
 $("#copyright-year").textContent = new Date().getFullYear();
 initializeArticles();
