@@ -3,14 +3,132 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="refresh" content="0; url=/" />
-    <link rel="canonical" href="/" />
-    <title>Redirecting...</title>
+    <meta name="description" content="A simple personal website with essays, notes, and a brief introduction." />
+    <title>Personal Journal</title>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-J5S89GVS2M"></script>
     <script>
-      window.location.replace("/");
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag("js", new Date());
+      gtag("config", "G-J5S89GVS2M");
     </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css?v=20260623-clean-routes" />
+    <script src="/app.js?v=20260623-clean-routes" defer></script>
   </head>
   <body>
-    <p><a href="/">Go to homepage</a></p>
+    <div class="grain" aria-hidden="true"></div>
+    <header class="site-header">
+      <div></div>
+      <nav class="main-nav" aria-label="Main navigation">
+        <a href="/home" data-route="blog">Home</a>
+        <a href="/about" data-route="about">About</a>
+        <button class="mobile-studio studio-entry" type="button" data-action="open-studio" hidden><span class="status-dot"></span> Studio</button>
+      </nav>
+      <button class="text-button studio-trigger studio-entry" type="button" data-action="open-studio" hidden>
+        <span class="status-dot"></span> Studio
+      </button>
+      <button class="menu-button" aria-label="Toggle menu" aria-expanded="false" type="button">Menu</button>
+    </header>
+
+    <main>
+      <section class="view blog-view" data-view="blog">
+        <div class="blog-tools page-shell">
+          <div class="tag-list" id="tag-filters" aria-label="Filter articles by tag"></div>
+          <label class="search-field">
+            <span class="sr-only">Search articles</span>
+            <input id="article-search" type="search" placeholder="Search the journal" />
+            <span aria-hidden="true">↗</span>
+          </label>
+        </div>
+
+        <div class="article-grid page-shell" id="article-grid"></div>
+        <div class="empty-state page-shell" id="article-empty" hidden>
+          <p class="eyebrow">Nothing here yet</p>
+          <h2>No notes match that search.</h2>
+          <button class="button secondary" type="button" data-action="clear-filters">Clear filters</button>
+        </div>
+      </section>
+
+      <section class="view about-view" data-view="about" hidden>
+        <div class="about-layout page-shell">
+          <div class="about-intro">
+            <p class="eyebrow">A brief introduction</p>
+            <h1>Hello, I’m <em>Kevin.</em></h1>
+            <p class="about-lead">I’m based in the San Francisco Bay Area, and this site is a place for notes, ideas, and reflections.</p>
+          </div>
+          <div class="about-copy">
+            <p>I use this space to write about what I’m learning, thinking through, and paying attention to over time.</p>
+            <p>Outside of work, I enjoy hiking, listening to music, and spending time outdoors.</p>
+            <div class="contact-row">
+              <span>jieshuai123 at gmail dot com</span>
+              <a href="https://www.linkedin.com/in/jieshuai/" target="_blank" rel="noopener noreferrer">LinkedIn ↗</a>
+              <a href="https://github.com/jshuai6" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+              <span>San Francisco Bay Area</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <article class="view article-view" data-view="article" hidden>
+        <div class="article-reading page-shell" id="article-reading"></div>
+      </article>
+    </main>
+
+    <footer class="site-footer page-shell">
+      <p>© <span id="copyright-year"></span> Kevin. All rights reserved.</p>
+      <button type="button" data-action="back-to-top">Back to top ↑</button>
+    </footer>
+
+    <dialog class="studio-dialog" id="studio-dialog">
+      <div class="dialog-head">
+        <div>
+          <p class="eyebrow">Private workspace</p>
+          <h2>Publishing studio</h2>
+        </div>
+        <button class="icon-button" data-action="close-studio" aria-label="Close studio" type="button">×</button>
+      </div>
+      <div class="studio-tabs" role="tablist">
+        <button class="active" role="tab" data-studio-tab="articles" type="button">Articles</button>
+      </div>
+      <section class="studio-panel" data-studio-panel="articles">
+        <form id="article-form" class="editor-form">
+          <label>Title<input name="title" required placeholder="A title worth opening" /></label>
+          <div class="form-row">
+            <label>Tags<input name="tags" required placeholder="Design, Notes" /></label>
+            <label>Read time<input name="readTime" placeholder="4 min read" /></label>
+          </div>
+          <label>Cover image<input name="image" type="file" accept="image/*" /></label>
+          <label>Summary<textarea name="summary" required rows="2" placeholder="A short introduction for the home page"></textarea></label>
+          <label>Article<textarea id="article-body" name="body" required rows="7" placeholder="Write your article here. Separate paragraphs with a blank line. Paste an image or use Insert image to place it within the text."></textarea></label>
+          <div class="editor-tools">
+            <button class="button secondary" id="insert-inline-image" type="button">Insert image</button>
+            <input class="sr-only" id="inline-image-input" type="file" accept="image/*" />
+            <small id="inline-image-status">No inline images inserted yet.</small>
+          </div>
+          <p class="studio-notice" id="studio-notice" role="status" aria-live="polite"></p>
+          <div class="form-actions">
+            <button class="button primary" id="article-submit" type="submit">Save article</button>
+            <button class="button secondary" id="cancel-edit" type="button" hidden>Cancel edit</button>
+          </div>
+        </form>
+        <div class="backup-tools">
+          <div>
+            <strong>Article backup</strong>
+            <p>Download posts.json after saving. Commit that file to GitHub to make posts permanent across devices.</p>
+          </div>
+          <div class="backup-actions">
+            <button class="button secondary" id="download-backup" type="button">Download posts.json</button>
+            <button class="button secondary" id="import-backup" type="button">Import posts.json</button>
+            <input class="sr-only" id="backup-input" type="file" accept="application/json,.json" />
+          </div>
+        </div>
+        <div class="manage-list" id="manage-articles"></div>
+      </section>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
   </body>
 </html>

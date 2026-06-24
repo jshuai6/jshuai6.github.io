@@ -228,9 +228,9 @@ function renderManagement() {
 
 function showArticle(id) {
   const article = articles.find(item => item.id === id);
-  if (!article) { navigateTo("/blog"); return; }
+  if (!article) { navigateTo("/home"); return; }
   $("#article-reading").innerHTML = `
-    <a class="back-link" href="/blog">← Back to journal</a>
+    <a class="back-link" href="/home">← Back to journal</a>
     <p class="eyebrow">${article.tags.map(tag => `#${escapeHTML(tag)}`).join(" &nbsp; ")}</p>
     <h1>${escapeHTML(article.title)}</h1>
     <div class="reading-meta"><span>${escapeHTML(article.date)}</span><span>${escapeHTML(article.readTime)}</span></div>
@@ -250,16 +250,16 @@ function showView(view) {
 
 function currentRoute() {
   const hashRoute = location.hash.replace("#", "");
-  if (hashRoute === "blog") return { path: "/blog", replace: true };
+  if (hashRoute === "blog") return { path: "/home", replace: true };
   if (hashRoute === "about") return { path: "/about", replace: true };
   if (hashRoute.startsWith("article/")) return { path: `/${hashRoute}`, replace: true };
 
   const path = location.pathname.replace(/\/$/, "") || "/";
   if (location.pathname !== "/" && location.pathname.endsWith("/")) return { path, replace: true };
-  if (path === "/" || path === "/blog") return { view: "blog", path: "/blog" };
+  if (path === "/" || path === "/home" || path === "/blog") return { view: "blog", path: path === "/blog" ? "/blog" : "/home" };
   if (path === "/about") return { view: "about", path: "/about" };
   if (path.startsWith("/article/")) return { articleId: path.split("/")[2], path };
-  return { view: "blog", path: "/blog", replace: true };
+  return { view: "blog", path: "/home", replace: true };
 }
 
 function route() {
